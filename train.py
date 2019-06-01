@@ -1,21 +1,22 @@
 import json
 import argparse
+import random
 import os
 import os.path as osp
 import torch
 from torch.utils.data import DataLoader
-import utils
-import cat_dataset
-import networks
+from utils import save_image_grid
+from cat_dataset import prepare_dataset, extract_catfaces, CatfaceDataset
+from networks import Generator, DCGAN_Discriminator, WGAN_Discriminator, weights_init
 
 
 def run_training():
     if params.dataset == "cats":
         # download and extract data
-        img_paths, annotation_paths = cat_dataset.prepare_dataset(data_path=params.data_path)
-        catface_img_paths = cat_dataset.extract_catfaces(img_paths, annotation_paths)
+        img_paths, annotation_paths = prepare_dataset(data_path=params.data_path)
+        catface_img_paths = extract_catfaces(img_paths, annotation_paths)
         # define dataset
-        dataset = cat_dataset.CatfaceDataset(img_paths=catface_img_paths, mirror=True, random_crop=True)
+        dataset = CatfaceDataset(img_paths=catface_img_paths, mirror=True, random_crop=True)
         print("num of images:", len(dataset))
 
     # load training configuration
@@ -36,25 +37,25 @@ def run_training():
     print("Use GPU: {}".format(use_gpu))
 
     # Initialize generator and discriminator
-    generator = networks.Generator()  # the generator is the same for both the DCGAN and the WGAN
+    generator = Generator()  # the generator is the same for both the DCGAN and the WGAN
 
     if params.gan_type == "dcgan":
-        discriminator = networks.DCGAN_Discriminator()  # DCGAN discriminator
+        discriminator = DCGAN_Discriminator()  # DCGAN discriminator
         # Loss function
         adversarial_loss = torch.nn.BCELoss()
         if use_gpu:
             adversarial_loss = adversarial_loss.cuda()
 
     elif params.gan_type == "wgan_gp":
-        discriminator = networks.WGAN_Discriminator()  # WGAN Discriminator
+        discriminator = WGAN_Discriminator()  # WGAN Discriminator
 
     if use_gpu:
         generator = generator.cuda()
         discriminator = discriminator.cuda()
 
     # Initialize weights
-    generator.apply(networks.weights_init)
-    discriminator.apply(networks.weights_init)
+    generator.apply(weights_init)
+    discriminator.apply(weights_init)
 
     # Optimizers
     optimizer_gen = torch.optim.Adam(generator.parameters(), lr=train_config["learning_rate_g"],
@@ -66,8 +67,10 @@ def run_training():
     os.makedirs(osp.join(params.checkpoint_path, "weights"), exist_ok=True)
     os.makedirs(osp.join(params.checkpoint_path, "samples"), exist_ok=True)
 
-    # generate a sample
+    # generate a sample with fixed seed, and reset the seed to pseudorandom
+    torch.manual_seed(42)
     z_sample = torch.randn(train_config["batch_size"], train_config["latent_dim"], 1, 1)
+    torch.manual_seed(random.randint(0, 1e10))
     if use_gpu:
         z_sample = z_sample.cuda()
 
@@ -176,10 +179,10 @@ def run_training():
         if epoch == 1 or epoch % train_config["sample_save_freq"] == 0:
             # Save sample
             gen_sample = generator(z_sample)
-            utils.save_image_grid(img_batch=gen_sample[:train_config["grid_size"] ** 2].detach().cpu().numpy(),
-                                  grid_size=train_config["grid_size"], epoch=epoch,
-                                  img_path=osp.join(params.checkpoint_path, "samples",
-                                                    "checkpoint_ep{}_sample.png".format(epoch)))
+            save_image_grid(img_batch=gen_sample[:train_config["grid_size"] ** 2].detach().cpu().numpy(),
+                            grid_size=train_config["grid_size"], epoch=epoch,
+                            img_path=osp.join(params.checkpoint_path, "samples",
+                                              "checkpoint_ep{}_sample.png".format(epoch)))
             print("Image sample saved.")
 
         if epoch == 1 or epoch % train_config["save_freq"] == 0:

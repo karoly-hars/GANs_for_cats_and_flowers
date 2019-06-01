@@ -7,7 +7,7 @@
     "latent_dim": 100,
     "learning_rate_d": 5e-05,
     "learning_rate_g": 0.0002,
-    "max_epoch": 250,
+    "max_epoch": 280,
     "n_critic": null,
     "num_workers": 4,
     "sample_save_freq": 1,
