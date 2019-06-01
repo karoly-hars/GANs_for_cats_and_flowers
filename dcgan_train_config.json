@@ -1,0 +1,16 @@
+{
+    "b1": 0.5,
+    "b2": 0.999,
+    "batch_size": 64,
+    "grad_penalty_weight": null,
+    "grid_size": 8,
+    "latent_dim": null,
+    "learning_rate_d": 5e-05,
+    "learning_rate_g": 0.0002,
+    "max_epoch": 250,
+    "n_critic": null,
+    "num_workers": 4,
+    "sample_save_freq": 1,
+    "save_freq": 5,
+    "start_epoch": 1
+}
