@@ -4,7 +4,7 @@
     "batch_size": 64,
     "grad_penalty_weight": null,
     "grid_size": 8,
-    "latent_dim": null,
+    "latent_dim": 100,
     "learning_rate_d": 5e-05,
     "learning_rate_g": 0.0002,
     "max_epoch": 250,

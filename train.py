@@ -14,7 +14,7 @@ def run_training():
         # download and extract data
         img_paths, annotation_paths = cat_dataset.prepare_dataset(data_path=params.data_path)
         catface_img_paths = cat_dataset.extract_catfaces(img_paths, annotation_paths)
-        # define dataloader
+        # define dataset
         dataset = cat_dataset.CatfaceDataset(img_paths=catface_img_paths, mirror=True, random_crop=True)
         print("num of images:", len(dataset))
 
@@ -27,6 +27,7 @@ def run_training():
         with open('wgan_gp_train_config.json', 'r') as json_file:
             train_config = json.load(json_file)
 
+    # define data loader
     data_loader = DataLoader(dataset, batch_size=train_config["batch_size"],
                              shuffle=True, num_workers=train_config["num_workers"])
 
