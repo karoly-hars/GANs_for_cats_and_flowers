@@ -1,11 +1,11 @@
 import os
 import os.path as osp
 import cv2
-import numpy as np
 import math
 import random
 import torch
 from torch.utils.data import Dataset
+from utils import preprocess_img
 
 
 def rot_image(img, angle, center):
@@ -102,39 +102,40 @@ def crop_catface(img_path, annotation_path):
 
 
 # downloads and unzips the cat database, and extracts the cat faces from the annotations
-def prepare_dataset(data_path="./data"):
-    if not osp.exists(data_path):
-        os.makedirs(data_path)
+def prepare_cat_dataset(data_path="./data"):
+    cat_data_path = osp.join(data_path, "cat_data")
+    if not osp.exists(cat_data_path):
+        os.makedirs(cat_data_path)
         # download
-        print("Downloading dataset part 1...")
+        print("Downloading cat dataset part 1...")
         os.system(
             "wget https://web.archive.org/web/20150520175555/"
-            "http://137.189.35.203/WebUI/CatDatabase/Data/CAT_DATASET_01.zip -P {}".format(data_path))
-        print("Downloading dataset part 2...")
+            "http://137.189.35.203/WebUI/CatDatabase/Data/CAT_DATASET_01.zip -P {}".format(cat_data_path))
+        print("Downloading cat dataset part 2...")
         os.system(
             "wget https://web.archive.org/web/20150520175645/"
-            "http://137.189.35.203/WebUI/CatDatabase/Data/CAT_DATASET_02.zip -P {}".format(data_path))
+            "http://137.189.35.203/WebUI/CatDatabase/Data/CAT_DATASET_02.zip -P {}".format(cat_data_path))
         os.system(
             "wget https://web.archive.org/web/20130527104257/"
-            "http://137.189.35.203/WebUI/CatDatabase/Data/00000003_015.jpg.cat -P {}".format(data_path))
+            "http://137.189.35.203/WebUI/CatDatabase/Data/00000003_015.jpg.cat -P {}".format(cat_data_path))
 
         # unzip
-        print("Unziping data partset 1...")
-        os.system("unzip {}/CAT_DATASET_01.zip -d {}/CAT_DATASET_01".format(data_path, data_path))
-        print("Unziping data partset 2...")
-        os.system("unzip {}/CAT_DATASET_02.zip -d {}/CAT_DATASET_02".format(data_path, data_path))
+        print("Unziping dataset part 1...")
+        os.system("unzip {}/CAT_DATASET_01.zip -d {}/CAT_DATASET_01".format(cat_data_path, cat_data_path))
+        print("Unziping dataset part 2...")
+        os.system("unzip {}/CAT_DATASET_02.zip -d {}/CAT_DATASET_02".format(cat_data_path, cat_data_path))
 
         # bugfix according to
         # https://web.archive.org/web/20150703060412/http://137.189.35.203/WebUI/CatDatabase/catData.html
-        os.system("mv {}/00000003_015.jpg.cat {}/CAT_DATASET_01/CAT_00".format(data_path, data_path))
-        os.system("rm {}/CAT_DATASET_01/CAT_00/00000003_019.jpg.cat".format(data_path))
+        os.system("mv {}/00000003_015.jpg.cat {}/CAT_DATASET_01/CAT_00".format(cat_data_path, cat_data_path))
+        os.system("rm {}/CAT_DATASET_01/CAT_00/00000003_019.jpg.cat".format(cat_data_path))
 
     else:
-        print("Dataset already prepared in {}".format(data_path))
+        print("Dataset already prepared in {}".format(cat_data_path))
 
-    img_paths = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_path)) for f in fn if
+    img_paths = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(cat_data_path)) for f in fn if
                  f.endswith(".jpg")]
-    annotation_paths = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_path)) for f in fn if
+    annotation_paths = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(cat_data_path)) for f in fn if
                         f.endswith(".jpg.cat")]
     img_paths.sort()
     annotation_paths.sort()
@@ -143,7 +144,7 @@ def prepare_dataset(data_path="./data"):
 
 
 # Extracts the faces from each cat image
-def extract_catfaces(img_paths, annotation_paths, catfaces_path="./data/catfaces"):
+def extract_catfaces(img_paths, annotation_paths, catfaces_path="./data/cat_data/catfaces"):
     if not osp.exists(catfaces_path):
         # crop around the faces and save the new imageset
         print("Extracting catfaces...")
@@ -162,29 +163,11 @@ def extract_catfaces(img_paths, annotation_paths, catfaces_path="./data/catfaces
     return catface_img_paths
 
 
-# transform network into displayable img
-def postprocess_img(img):
-    img = img.transpose((1, 2, 0))
-    img += 1.0
-    img = (img * 128.0).astype(np.uint8)
-    return img
-
-
-def preprocess_img(img):
-    # normalize
-    img = img / 128.0  # between 0 and 2
-    img -= 1.0  # between -1 and 1
-    # transpose
-    img = img.transpose((2, 0, 1))
-    return img
-
-
 class CatfaceDataset(Dataset):
-    def __init__(self, img_paths, size=64, mirror=True, random_crop=True):
+    def __init__(self, img_paths, size=64, mirror=True):
         self.img_paths = img_paths
         self.size = size
         self.mirror = mirror
-        self.random_crop = random_crop
 
     def __len__(self):
         return len(self.img_paths)
@@ -192,14 +175,12 @@ class CatfaceDataset(Dataset):
     def __getitem__(self, idx):
         img_path = self.img_paths[idx]
         img = cv2.imread(img_path)
-
         # mirror img with a 50% chance
         if self.mirror:
             if random.random() > 0.5:
                 img = img[:, ::-1, :]
+        # resize
         img = cv2.resize(img, (self.size, self.size))
-
         # normalize
         img = preprocess_img(img)
-        img = torch.Tensor(img)
-        return img
+        return torch.Tensor(img)

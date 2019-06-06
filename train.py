@@ -6,18 +6,24 @@ import os.path as osp
 import torch
 from torch.utils.data import DataLoader
 from utils import save_image_grid
-from cat_dataset import prepare_dataset, extract_catfaces, CatfaceDataset
+from cat_dataset import prepare_cat_dataset, extract_catfaces, CatfaceDataset
+from flowers_dataset import prepare_flowers_dataset, FlowerDataset
 from networks import Generator, DCGAN_Discriminator, WGAN_Discriminator, weights_init
 
 
 def run_training():
     if params.dataset == "cats":
         # download and extract data
-        img_paths, annotation_paths = prepare_dataset(data_path=params.data_path)
+        img_paths, annotation_paths = prepare_cat_dataset(data_path=params.data_path)
         catface_img_paths = extract_catfaces(img_paths, annotation_paths)
         # define dataset
-        dataset = CatfaceDataset(img_paths=catface_img_paths, mirror=True, random_crop=True)
-        print("num of images:", len(dataset))
+        dataset = CatfaceDataset(img_paths=catface_img_paths, mirror=True)
+    elif params.dataset == "flowers":
+        # download images
+        flower_img_paths = prepare_flowers_dataset(data_path=params.data_path)
+        # define dataset
+        dataset = FlowerDataset(img_paths=flower_img_paths, mirror=True)
+    print("num of images:", len(dataset))
 
     # load training configuration
     if params.gan_type == "dcgan":

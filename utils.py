@@ -1,7 +1,23 @@
 import math
 import numpy as np
 import cv2
-from cat_dataset import postprocess_img
+
+
+# transform network into displayable img
+def postprocess_img(img):
+    img = img.transpose((1, 2, 0))
+    img += 1.0
+    img = (img * 128.0).astype(np.uint8)
+    return img
+
+
+def preprocess_img(img):
+    # normalize
+    img = img / 128.0  # between 0 and 2
+    img -= 1.0  # between -1 and 1
+    # transpose
+    img = img.transpose((2, 0, 1))
+    return img
 
 
 def save_image_grid(img_batch, grid_size, epoch, img_path):

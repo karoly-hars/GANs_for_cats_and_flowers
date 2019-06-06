@@ -1,0 +1,10 @@
+.idea
+__pycache__
+checkpoints
+data
+results_from_colab
+./idea/*
+__pycache__/*
+checkpoints/*
+data/*
+results_from_colab/*
