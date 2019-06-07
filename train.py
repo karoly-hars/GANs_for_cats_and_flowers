@@ -22,7 +22,7 @@ def run_training():
         # download images
         flower_img_paths = prepare_flowers_dataset(data_path=params.data_path)
         # define dataset
-        dataset = Flowers64Dataset(img_paths=flower_img_paths[:10])
+        dataset = Flowers64Dataset(img_paths=flower_img_paths)
     print("num of images:", len(dataset))
 
     # load training configuration
