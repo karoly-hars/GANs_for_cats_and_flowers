@@ -28,10 +28,10 @@ def prepare_flowers_dataset(data_path="./data"):
     return img_paths
 
 
-class FlowerDataset(Dataset):
-    def __init__(self, img_paths, size=64, mirror=True):
+class Flowers64Dataset(Dataset):
+    def __init__(self, img_paths, mirror=True):
         self.img_paths = img_paths
-        self.size = size
+        self.size = 64
         self.mirror = mirror
 
     def __len__(self):

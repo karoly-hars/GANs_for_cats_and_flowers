@@ -163,10 +163,10 @@ def extract_catfaces(img_paths, annotation_paths, catfaces_path="./data/cat_data
     return catface_img_paths
 
 
-class CatfaceDataset(Dataset):
-    def __init__(self, img_paths, size=64, mirror=True):
+class Catfaces64Dataset(Dataset):
+    def __init__(self, img_paths, mirror=True):
         self.img_paths = img_paths
-        self.size = size
+        self.size = 64
         self.mirror = mirror
 
     def __len__(self):
