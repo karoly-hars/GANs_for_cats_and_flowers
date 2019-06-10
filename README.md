@@ -25,5 +25,4 @@ For both datasets and networks the training was stable,
 and I ended up with more-or-less good looking, believable cats/flowers.
 I trained the DCGAN models for 280 epoch, and the WGAN-GP models for about 700.
 
-<img src="imgs/dcgan_cats_ep280_sample.png" width="526"> <img src="imgs/wgan_cats_ep700_sample.png" width="526">
-<img src="imgs/dcgan_flowers_ep280_sample.png" width="526"> <img src="imgs/wgan_flowers_ep700_sample.png" width="526">
+![alt-text-1](imgs/dcgan_cats_ep280_sample.png "DCGAN-cats") ![alt-text-2](imgs/wgan_cats_ep700_sample.png "WGAN_GP-cats")
