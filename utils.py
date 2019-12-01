@@ -3,8 +3,8 @@ import numpy as np
 import cv2
 
 
-# transform network into displayable img
 def postprocess_img(img):
+    # transform network output into displayable img
     img = img.transpose((1, 2, 0))
     img += 1.0
     img = (img * 128.0).astype(np.uint8)

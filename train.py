@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from utils import save_image_grid
 from cat_dataset import prepare_cat_dataset, extract_catfaces, Catfaces64Dataset
 from flowers_dataset import prepare_flowers_dataset, Flowers64Dataset
-from networks import Generator, DCGAN_Discriminator, WGAN_Discriminator, weights_init
+from networks import Generator, DCGANDiscriminator, WGANDiscriminator, weights_init
 
 
 def run_training(args):
@@ -45,14 +45,14 @@ def run_training(args):
     generator = Generator()  # the generator is the same for both the DCGAN and the WGAN
 
     if args.gan_type == "dcgan":
-        discriminator = DCGAN_Discriminator()  # DCGAN discriminator
+        discriminator = DCGANDiscriminator()  # DCGAN discriminator
         # Loss function
         adversarial_loss = torch.nn.BCELoss()
         if use_gpu:
             adversarial_loss = adversarial_loss.cuda()
 
     elif args.gan_type == "wgan_gp":
-        discriminator = WGAN_Discriminator()  # WGAN Discriminator
+        discriminator = WGANDiscriminator()  # WGAN Discriminator
 
     if use_gpu:
         generator = generator.cuda()

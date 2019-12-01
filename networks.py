@@ -72,9 +72,9 @@ class Generator(nn.Module):
 # -------------------------
 # -- DCGAN Discriminator --
 # -------------------------
-class DCGAN_Discriminator(nn.Module):
+class DCGANDiscriminator(nn.Module):
     def __init__(self):
-        super(DCGAN_Discriminator, self).__init__()
+        super(DCGANDiscriminator, self).__init__()
 
         self.conv1 = ConvBlock("disc_start_block", 3, 128, normalize=False, kernel_size=4, stride=2, padding=1)
         self.conv2 = ConvBlock("disc_mid_block1", 128, 256, normalize=True, kernel_size=4, stride=2, padding=1)
@@ -96,9 +96,9 @@ class DCGAN_Discriminator(nn.Module):
 # ------------------------
 # -- WGAN Discriminator --
 # ------------------------
-class WGAN_Discriminator(nn.Module):
+class WGANDiscriminator(nn.Module):
     def __init__(self):
-        super(WGAN_Discriminator, self).__init__()
+        super(WGANDiscriminator, self).__init__()
 
         self.conv1 = ConvBlock("disc_start_block", 3, 128, normalize=False, kernel_size=4, stride=2, padding=1)
         self.conv2 = ConvBlock("disc_mid_block1", 128, 256, normalize=False, kernel_size=4, stride=2, padding=1)

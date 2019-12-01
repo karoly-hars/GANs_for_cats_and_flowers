@@ -41,9 +41,7 @@ def flip_image_and_keypoints(img, keypoints):
     return img, keypoints
 
 
-# crops and resizes the image part that contains the cat's face, based on the annotations
 def crop_catface(img_path, annotation_path):
-    # load img
     img = cv2.imread(img_path)
     # get parse annotation
     annotation = open(annotation_path, "r")
@@ -99,8 +97,8 @@ def crop_catface(img_path, annotation_path):
     return img
 
 
-# downloads and unzips the cat database, and extracts the cat faces from the annotations
 def prepare_cat_dataset(data_path="./data"):
+    # download and unzip the cat database, and extract the cat faces according to the annotations
     cat_data_path = os.path.join(data_path, "cat_data")
     if not os.path.exists(cat_data_path):
         os.makedirs(cat_data_path)
@@ -141,8 +139,8 @@ def prepare_cat_dataset(data_path="./data"):
     return img_paths, annotation_paths
 
 
-# Extracts the faces from each cat image
 def extract_catfaces(img_paths, annotation_paths, catfaces_path="./data/cat_data/catfaces"):
+    # extract the faces from each cat image
     if not os.path.exists(catfaces_path):
         # crop around the faces and save the new imageset
         print("Extracting catfaces...")
