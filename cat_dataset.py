@@ -1,5 +1,4 @@
 import os
-import os.path as osp
 import cv2
 import math
 import random
@@ -26,7 +25,6 @@ def rotate_image_and_keypoints(img, keypoints, angle):
 
     # Rotate keypoints
     for point_name, (px, py) in keypoints.items():
-        px, py
         qx = center[0] + math.cos(-angle) * (px - center[0]) - math.sin(-angle) * (py - center[1])
         qy = center[1] + math.sin(-angle) * (px - center[0]) + math.cos(-angle) * (py - center[1])
         keypoints[point_name] = (int(qx), int(qy))
@@ -103,8 +101,8 @@ def crop_catface(img_path, annotation_path):
 
 # downloads and unzips the cat database, and extracts the cat faces from the annotations
 def prepare_cat_dataset(data_path="./data"):
-    cat_data_path = osp.join(data_path, "cat_data")
-    if not osp.exists(cat_data_path):
+    cat_data_path = os.path.join(data_path, "cat_data")
+    if not os.path.exists(cat_data_path):
         os.makedirs(cat_data_path)
         # download
         print("Downloading cat dataset part 1...")
@@ -145,7 +143,7 @@ def prepare_cat_dataset(data_path="./data"):
 
 # Extracts the faces from each cat image
 def extract_catfaces(img_paths, annotation_paths, catfaces_path="./data/cat_data/catfaces"):
-    if not osp.exists(catfaces_path):
+    if not os.path.exists(catfaces_path):
         # crop around the faces and save the new imageset
         print("Extracting catfaces...")
         os.makedirs(catfaces_path)
@@ -159,7 +157,7 @@ def extract_catfaces(img_paths, annotation_paths, catfaces_path="./data/cat_data
     else:
         print("Catfaces dataset is ready.")
 
-    catface_img_paths = [osp.join(catfaces_path, f) for f in os.listdir(catfaces_path) if f.endswith(".jpg")]
+    catface_img_paths = [os.path.join(catfaces_path, f) for f in os.listdir(catfaces_path) if f.endswith(".jpg")]
     return catface_img_paths
 
 

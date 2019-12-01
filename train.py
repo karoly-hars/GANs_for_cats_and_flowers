@@ -2,7 +2,6 @@ import json
 import argparse
 import random
 import os
-import os.path as osp
 import torch
 from torch.utils.data import DataLoader
 from utils import save_image_grid
@@ -11,26 +10,26 @@ from flowers_dataset import prepare_flowers_dataset, Flowers64Dataset
 from networks import Generator, DCGAN_Discriminator, WGAN_Discriminator, weights_init
 
 
-def run_training():
-    if params.dataset == "cats":
+def run_training(args):
+    if args.dataset == "cats":
         # download and extract data
-        img_paths, annotation_paths = prepare_cat_dataset(data_path=params.data_path)
+        img_paths, annotation_paths = prepare_cat_dataset(data_path=args.data_path)
         catface_img_paths = extract_catfaces(img_paths, annotation_paths)
         # define dataset
         dataset = Catfaces64Dataset(img_paths=catface_img_paths)
-    elif params.dataset == "flowers":
+    elif args.dataset == "flowers":
         # download images
-        flower_img_paths = prepare_flowers_dataset(data_path=params.data_path)
+        flower_img_paths = prepare_flowers_dataset(data_path=args.data_path)
         # define dataset
         dataset = Flowers64Dataset(img_paths=flower_img_paths)
     print("num of images:", len(dataset))
 
     # load training configuration
-    if params.gan_type == "dcgan":
+    if args.gan_type == "dcgan":
         with open('dcgan_train_config.json', 'r') as json_file:
             train_config = json.load(json_file)
 
-    elif params.gan_type == "wgan_gp":
+    elif args.gan_type == "wgan_gp":
         with open('wgan_gp_train_config.json', 'r') as json_file:
             train_config = json.load(json_file)
 
@@ -45,14 +44,14 @@ def run_training():
     # Initialize generator and discriminator
     generator = Generator()  # the generator is the same for both the DCGAN and the WGAN
 
-    if params.gan_type == "dcgan":
+    if args.gan_type == "dcgan":
         discriminator = DCGAN_Discriminator()  # DCGAN discriminator
         # Loss function
         adversarial_loss = torch.nn.BCELoss()
         if use_gpu:
             adversarial_loss = adversarial_loss.cuda()
 
-    elif params.gan_type == "wgan_gp":
+    elif args.gan_type == "wgan_gp":
         discriminator = WGAN_Discriminator()  # WGAN Discriminator
 
     if use_gpu:
@@ -70,8 +69,8 @@ def run_training():
                                       betas=(train_config["b1"], train_config["b2"]))
 
     # make save dir, if needed
-    os.makedirs(osp.join(params.checkpoint_path, "weights"), exist_ok=True)
-    os.makedirs(osp.join(params.checkpoint_path, "samples"), exist_ok=True)
+    os.makedirs(os.path.join(args.checkpoint_path, "weights"), exist_ok=True)
+    os.makedirs(os.path.join(args.checkpoint_path, "samples"), exist_ok=True)
 
     # generate a sample with fixed seed, and reset the seed to pseudorandom
     torch.manual_seed(42)
@@ -83,10 +82,18 @@ def run_training():
     # load weights if the training is not starting from the beginning
     if train_config["start_epoch"] > 1:
         device = "cuda:0" if use_gpu else "cpu"
-        generator.load_state_dict(torch.load(osp.join(params.checkpoint_path, "weights", "checkpoint_ep{}_gen.pt"
-                                                      .format(train_config["start_epoch"]-1)), map_location=device))
-        discriminator.load_state_dict(torch.load(osp.join(params.checkpoint_path, "weights", "checkpoint_ep{}_disc.pt"
-                                                          .format(train_config["start_epoch"]-1)), map_location=device))
+        generator.load_state_dict(torch.load(
+            os.path.join(args.checkpoint_path,
+                         "weights",
+                         "checkpoint_ep{}_gen.pt".format(train_config["start_epoch"]-1)),
+            map_location=device)
+        )
+
+        discriminator.load_state_dict(torch.load(
+            os.path.join(args.checkpoint_path,
+                         "weights", "checkpoint_ep{}_disc.pt".format(train_config["start_epoch"]-1)),
+            map_location=device)
+        )
 
     # start training
     for epoch in range(train_config["start_epoch"], train_config["max_epoch"]+1):
@@ -99,7 +106,7 @@ def run_training():
             if use_gpu:
                 z = z.cuda()
 
-            if params.gan_type == "dcgan":
+            if args.gan_type == "dcgan":
                 valid = torch.ones(imgs.size(0))
                 fake = torch.zeros(imgs.size(0))
                 if use_gpu:
@@ -127,7 +134,7 @@ def run_training():
                 g_loss.backward()
                 optimizer_gen.step()
 
-            elif params.gan_type == "wgan_gp":
+            elif args.gan_type == "wgan_gp":
                 one, neg_one = torch.FloatTensor([1]), torch.FloatTensor([1])*-1
                 u = torch.FloatTensor(imgs.size()[0], 1, 1, 1).uniform_(0, 1)
                 grad_outputs = torch.ones(imgs.size()[0])
@@ -187,25 +194,29 @@ def run_training():
             gen_sample = generator(z_sample)
             save_image_grid(img_batch=gen_sample[:train_config["grid_size"] ** 2].detach().cpu().numpy(),
                             grid_size=train_config["grid_size"], epoch=epoch,
-                            img_path=osp.join(params.checkpoint_path, "samples",
-                                              "checkpoint_ep{}_sample.png".format(epoch)))
+                            img_path=os.path.join(args.checkpoint_path,
+                                                  "samples",
+                                                  "checkpoint_ep{}_sample.png".format(epoch)))
             print("Image sample saved.")
 
         if epoch == 1 or epoch % train_config["save_freq"] == 0:
-            torch.save(generator.state_dict(), osp.join(params.checkpoint_path, "weights",
-                                                        "checkpoint_ep{}_gen.pt".format(epoch)))
-            torch.save(discriminator.state_dict(), osp.join(params.checkpoint_path, "weights",
-                                                            "checkpoint_ep{}_disc.pt".format(epoch)))
+            torch.save(generator.state_dict(), os.path.join(args.checkpoint_path, "weights",
+                                                            "checkpoint_ep{}_gen.pt".format(epoch)))
+            torch.save(discriminator.state_dict(), os.path.join(args.checkpoint_path, "weights",
+                                                                "checkpoint_ep{}_disc.pt".format(epoch)))
             print("Checkpoint.")
 
 
-if __name__ == "__main__":
+def get_arguments():
     parser = argparse.ArgumentParser(description="Run GAN training.")
     parser.add_argument("--gan_type", type=str, help="network type", required=True, choices=["dcgan", "wgan_gp"])
     parser.add_argument("--dataset", type=str, help="dataset for training", required=True, choices=["cats", "flowers"])
     parser.add_argument("--data_path", type=str, help="download path for the data", default="./data")
     parser.add_argument("--checkpoint_path", type=str, help="save path for checkpoints and samples during training",
                         default="./checkpoints")
-    params = parser.parse_args()
+    return parser.parse_args()
 
-    run_training()
+
+if __name__ == "__main__":
+    args = get_arguments()
+    run_training(args)

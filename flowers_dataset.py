@@ -1,5 +1,4 @@
 import os
-import os.path as osp
 import cv2
 import random
 import torch
@@ -8,8 +7,8 @@ from utils import preprocess_img
 
 
 def prepare_flowers_dataset(data_path="./data"):
-    flowers_data_path = osp.join(data_path, "flower_data")
-    if not osp.exists(flowers_data_path):
+    flowers_data_path = os.path.join(data_path, "flower_data")
+    if not os.path.exists(flowers_data_path):
         os.makedirs(flowers_data_path)
         # download
         print("Downloading flower dataset...")
@@ -17,13 +16,13 @@ def prepare_flowers_dataset(data_path="./data"):
                   .format(flowers_data_path))
         # extract
         print("Unzipping flower dataset...")
-        os.system("tar -C {} -xvzf {}".format(flowers_data_path,
-                                              osp.join(flowers_data_path, "102flowers.tgz")))
+        os.system("tar -C {} -xvzf {}".format(
+            flowers_data_path, os.path.join(flowers_data_path, "102flowers.tgz")))
     else:
         print("Dataset already prepared in {}".format(flowers_data_path))
 
-    img_dir = osp.join(flowers_data_path, "jpg")
-    img_paths = [osp.join(img_dir, f) for f in os.listdir(img_dir) if f.endswith(".jpg")]
+    img_dir = os.path.join(flowers_data_path, "jpg")
+    img_paths = [os.path.join(img_dir, f) for f in os.listdir(img_dir) if f.endswith(".jpg")]
     img_paths.sort()
     return img_paths
 
@@ -54,5 +53,4 @@ class Flowers64Dataset(Dataset):
         img = cv2.resize(img, (self.size, self.size))
         # normalize
         img = preprocess_img(img)
-        img = torch.Tensor(img)
-        return img
+        return torch.Tensor(img)
