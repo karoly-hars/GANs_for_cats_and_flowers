@@ -5,194 +5,197 @@ import os
 import torch
 from torch.utils.data import DataLoader
 from utils import save_image_grid
-from cat_dataset import prepare_cat_dataset, extract_catfaces, Catfaces64Dataset
-from flowers_dataset import prepare_flowers_dataset, Flowers64Dataset
+from cat_dataset import Catfaces64Dataset
+from flowers_dataset import Flowers64Dataset
 from networks import Generator, DCGANDiscriminator, WGANDiscriminator, weights_init
 
 
-def run_training(args):
-    """Initialize and run the full training process using the hyper-params in args."""
-    if args.dataset == 'cats':
-        # download and extract data
-        img_paths, annotation_paths = prepare_cat_dataset(data_path=args.data_path)
-        catface_img_paths = extract_catfaces(img_paths, annotation_paths)
-        # define dataset
-        dataset = Catfaces64Dataset(img_paths=catface_img_paths)
-    elif args.dataset == 'flowers':
-        # download images
-        flower_img_paths = prepare_flowers_dataset(data_path=args.data_path)
-        # define dataset
-        dataset = Flowers64Dataset(img_paths=flower_img_paths)
+def init_training(args):
+    """Initialize networks, optimizers and the data pipeline."""
+    # create dataset
+    dataset = {
+        'cats': Catfaces64Dataset.create_from_scratch,
+        'flowers': Flowers64Dataset.create_from_scratch
+    }[args.dataset](args.data_path)
     print('num of images:', len(dataset))
 
-    # load training configuration
-    if args.gan_type == 'dcgan':
-        with open('dcgan_train_config.json', 'r') as json_file:
-            train_config = json.load(json_file)
-
-    elif args.gan_type == 'wgan_gp':
-        with open('wgan_gp_train_config.json', 'r') as json_file:
-            train_config = json.load(json_file)
+    # load config
+    config_path = {
+        'dcgan': 'dcgan_train_config.json',
+        'wgan_gp': 'wgan_gp_train_config.json'
+    }[args.gan_type]
+    with open(config_path, 'r') as json_file:
+        train_config = json.load(json_file)
 
     # define data loader
     data_loader = DataLoader(
         dataset, batch_size=train_config['batch_size'], shuffle=True, num_workers=train_config['num_workers']
     )
 
-    # use CUDA if available
-    use_gpu = torch.cuda.is_available()
-    print('Use GPU: {}'.format(use_gpu))
+    # check CUDA availability and set device
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print('Use GPU: {}'.format(device is not 'cpu'))
 
-    # Initialize generator and discriminator
+    # init networks
     generator = Generator()  # the generator is the same for both the DCGAN and the WGAN
-
-    if args.gan_type == 'dcgan':
-        discriminator = DCGANDiscriminator()  # DCGAN discriminator
-        # Loss function
-        adversarial_loss = torch.nn.BCELoss()
-        if use_gpu:
-            adversarial_loss = adversarial_loss.cuda()
-
-    elif args.gan_type == 'wgan_gp':
-        discriminator = WGANDiscriminator()  # WGAN Discriminator
-
-    if use_gpu:
-        generator = generator.cuda()
-        discriminator = discriminator.cuda()
-
-    # Initialize weights
     generator.apply(weights_init)
+    generator = generator.to(device)
+
+    discriminator = {
+        'dcgan': DCGANDiscriminator,
+        'wgan_gp': WGANDiscriminator
+    }[args.gan_type]()
     discriminator.apply(weights_init)
+    discriminator = discriminator.to(device)
 
     # Optimizers
-    optimizer_gen = torch.optim.Adam(
-        generator.parameters(), lr=train_config['learning_rate_g'], betas=(train_config['b1'], train_config['b2'])
-    )
-    optimizer_disc = torch.optim.Adam(
-        discriminator.parameters(), lr=train_config['learning_rate_d'], betas=(train_config['b1'], train_config['b2'])
-    )
+    optimizers = {
+        'gen': torch.optim.Adam(
+            generator.parameters(), lr=train_config['learning_rate_g'], betas=(train_config['b1'], train_config['b2'])
+        ),
+        'disc': torch.optim.Adam(
+            discriminator.parameters(), lr=train_config['learning_rate_d'], betas=(train_config['b1'], train_config['b2'])
+        )
+    }
 
     # make save dir, if needed
     os.makedirs(os.path.join(args.checkpoint_path, 'weights'), exist_ok=True)
     os.makedirs(os.path.join(args.checkpoint_path, 'samples'), exist_ok=True)
 
-    # generate a sample with fixed seed, and reset the seed to pseudo-random
-    torch.manual_seed(42)
-    z_sample = torch.randn(train_config['batch_size'], train_config['latent_dim'], 1, 1)
-    torch.manual_seed(random.randint(0, 1e10))
-    if use_gpu:
-        z_sample = z_sample.cuda()
-
     # load weights if the training is not starting from the beginning
     if train_config['start_epoch'] > 1:
-        device = 'cuda:0' if use_gpu else 'cpu'
-
-        gen_checkpoint_path = os.path.join(
+        gen_path = os.path.join(
             args.checkpoint_path, 'weights', 'checkpoint_ep{}_gen.pt'.format(train_config['start_epoch']-1)
         )
-        disc_checkpoint_path = os.path.join(
+        disc_path = os.path.join(
             args.checkpoint_path, 'weights', 'checkpoint_ep{}_disc.pt'.format(train_config['start_epoch']-1)
         )
+        generator.load_state_dict(torch.load(gen_path, map_location=device))
+        discriminator.load_state_dict(torch.load(disc_path, map_location=device))
 
-        generator.load_state_dict(torch.load(gen_checkpoint_path, map_location=device))
-        discriminator.load_state_dict(torch.load(disc_checkpoint_path, map_location=device))
+    return device, data_loader, train_config, generator, discriminator, optimizers
 
-    # start training
+
+def training_step_dcgan(batch, device, generator, discriminator, optimizers, train_config, loss_fn):
+    """Run training step of the generator and the discriminator in a DCGAN architecture."""
+    imgs = batch.to(device)
+
+    # Sample noise as generator input
+    z = torch.randn(imgs.size()[0], train_config['latent_dim'], 1, 1).to(device)
+
+    valid = torch.ones(imgs.size(0)).to(device)
+    fake = torch.zeros(imgs.size(0)).to(device)
+
+    # -------------------
+    # Train Discriminator
+    # -------------------
+    optimizers['disc'].zero_grad()
+    # Sample real
+    real_loss = loss_fn(discriminator(imgs), valid)
+    # Sample fake
+    gen_imgs = generator(z)  # generate fakes
+    fake_loss = loss_fn(discriminator(gen_imgs.detach()), fake)
+    # Backprop.
+    d_loss = real_loss + fake_loss
+    d_loss.backward()
+    optimizers['disc'].step()
+
+    # ---------------
+    # Train generator
+    # ---------------
+    optimizers['gen'].zero_grad()
+    g_loss = loss_fn(discriminator(gen_imgs), valid)
+    # Backprop.
+    g_loss.backward()
+    optimizers['gen'].step()
+
+    return g_loss, d_loss
+
+
+def training_step_wgan_gp(batch_idx, batch, device, train_config, generator, discriminator, optimizers):
+    """Run training step of the generator and the discriminator in a WGAN architecture with gradient penalty loss."""
+    imgs = batch.to(device)
+
+    # Sample noise as generator input
+    z = torch.randn(imgs.size()[0], train_config['latent_dim'], 1, 1).to(device)
+
+    one, neg_one = torch.tensor(1.0).to(device), torch.tensor(-1.0).to(device)
+    u = torch.Tensor(imgs.size()[0], 1, 1, 1).uniform_(0, 1).to(device)
+    grad_outputs = torch.ones(imgs.size()[0]).to(device)
+
+    # -------------------
+    # Train Discriminator
+    # -------------------
+    discriminator.zero_grad()
+    # Sample real
+    loss_real = discriminator(imgs)
+    loss_real = loss_real.mean()
+    loss_real.backward(neg_one)
+    # Sample fake
+    gen_imgs = generator(z).detach()
+    loss_fake = discriminator(gen_imgs)
+    loss_fake = loss_fake.mean()
+    loss_fake.backward(one)
+
+    # Gradient penalty
+    interpolates = (u * imgs + (1 - u) * gen_imgs).to(device)
+    interpolates.requires_grad_(True)
+    grad = torch.autograd.grad(
+        outputs=discriminator(interpolates),
+        inputs=interpolates,
+        grad_outputs=grad_outputs,
+        retain_graph=True, create_graph=True,
+        only_inputs=True
+    )
+    grad = grad[0]
+    grad_penalty = train_config['grad_penalty_weight'] * ((grad.norm(2, 1).norm(2, 1).norm(2, 1) - 1) ** 2).mean()
+    grad_penalty.backward()
+
+    d_loss = loss_fake - loss_real + grad_penalty
+    # backprop.
+    optimizers['disc'].step()
+
+    if batch_idx % train_config['n_critic'] == 0:
+        # ---------------
+        # Train generator
+        # ---------------
+        generator.zero_grad()
+        # Re-sample noise
+        z.data.normal_(0, 1)
+        gen_imgs = generator(z)
+        g_loss = discriminator(gen_imgs)
+        g_loss = g_loss.mean()
+        g_loss.backward(neg_one)
+        optimizers['gen'].step()
+
+    return g_loss, d_loss
+
+
+def run_training(args):
+    """Initialize and run the full training process using the hyper-params in args."""
+    device, data_loader, train_config, generator, discriminator, optimizers = init_training(args)
+
+    # generate a sample with fixed seed, and reset the seed to pseudo-random
+    torch.manual_seed(42)
+    z_sample = torch.randn(train_config['batch_size'], train_config['latent_dim'], 1, 1).to(device)
+    torch.manual_seed(random.randint(0, 1e10))
+
+    # Loss function for DCGAN
+    if args.gan_type == 'dcgan':
+        loss_fn = torch.nn.BCELoss().to(device)
+
+    # Training
     for epoch in range(train_config['start_epoch'], train_config['max_epoch']+1):
-        for batch_idx, imgs in enumerate(data_loader):
-            if use_gpu:
-                imgs = imgs.cuda()
-
-            # Sample noise as generator input
-            z = torch.randn(imgs.size()[0], train_config['latent_dim'], 1, 1)
-            if use_gpu:
-                z = z.cuda()
+        for batch_idx, batch in enumerate(data_loader):
 
             if args.gan_type == 'dcgan':
-                valid = torch.ones(imgs.size(0))
-                fake = torch.zeros(imgs.size(0))
-                if use_gpu:
-                    valid, fake = valid.cuda(), fake.cuda()
-
-                # -------------------
-                # Train Discriminator
-                # -------------------
-                optimizer_disc.zero_grad()
-                # Sample real
-                real_loss = adversarial_loss(discriminator(imgs), valid)
-                # Sample fake
-                gen_imgs = generator(z)  # generate fakes
-                fake_loss = adversarial_loss(discriminator(gen_imgs.detach()), fake)
-                # Backprop.
-                d_loss = real_loss + fake_loss
-                d_loss.backward()
-                optimizer_disc.step()
-
-                # ---------------
-                # Train generator
-                # ---------------
-                optimizer_gen.zero_grad()
-                g_loss = adversarial_loss(discriminator(gen_imgs), valid)
-                # Backprop.
-                g_loss.backward()
-                optimizer_gen.step()
-
+                g_loss, d_loss = \
+                    training_step_dcgan(batch, device, generator, discriminator, optimizers, train_config, loss_fn)
             elif args.gan_type == 'wgan_gp':
-                one, neg_one = torch.tensor(1.0), torch.tensor(-1.0)
-                u = torch.Tensor(imgs.size()[0], 1, 1, 1).uniform_(0, 1)
-                grad_outputs = torch.ones(imgs.size()[0])
-                if use_gpu:
-                    one, neg_one = one.cuda(), neg_one.cuda()
-                    u = u.cuda()
-                    grad_outputs = grad_outputs.cuda()
-
-                # -------------------
-                # Train Discriminator
-                # -------------------
-                discriminator.zero_grad()
-                # Sample real
-                loss_real = discriminator(imgs)
-                loss_real = loss_real.mean()
-                loss_real.backward(neg_one)
-                # Sample fake
-                gen_imgs = generator(z).detach()
-                loss_fake = discriminator(gen_imgs)
-                loss_fake = loss_fake.mean()
-                loss_fake.backward(one)
-
-                # Gradient penalty
-                interpolates = u*imgs + (1-u)*gen_imgs
-                if use_gpu:
-                    interpolates = interpolates.cuda()
-                interpolates.requires_grad_(True)
-                grad = torch.autograd.grad(
-                    outputs=discriminator(interpolates),
-                    inputs=interpolates,
-                    grad_outputs=grad_outputs,
-                    retain_graph=True, create_graph=True,
-                    only_inputs=True
-                )
-                grad = grad[0]
-                grad_penalty = train_config['grad_penalty_weight'] * \
-                    ((grad.norm(2, 1).norm(2, 1).norm(2, 1) - 1) ** 2).mean()
-                grad_penalty.backward()
-
-                # Optimize
-                d_loss = loss_fake - loss_real + grad_penalty
-                optimizer_disc.step()
-
-                if batch_idx % train_config['n_critic'] == 0:
-                    # ---------------
-                    # Train generator
-                    # ---------------
-                    generator.zero_grad()
-                    # Re-sample noise
-                    z.data.normal_(0, 1)
-                    gen_imgs = generator(z)
-                    g_loss = discriminator(gen_imgs)
-                    g_loss = g_loss.mean()
-                    g_loss.backward(neg_one)
-                    optimizer_gen.step()
+                _, d_loss = \
+                    training_step_wgan_gp(batch_idx, batch, device, train_config, generator, discriminator, optimizers)
+                if _ is not None:
+                    g_loss = _
 
         print('\nEpoch {}/{}:\n'
               '  Discriminator loss={:.4f}\n'
@@ -210,14 +213,11 @@ def run_training(args):
             print('Image sample saved.')
 
         if epoch == 1 or epoch % train_config['save_freq'] == 0:
-            gen_checkpoint_path = os.path.join(
-                args.checkpoint_path, 'weights', 'checkpoint_ep{}_gen.pt'.format(epoch)
-            )
-            disc_checkpoint_path = os.path.join(
-                args.checkpoint_path, 'weights', 'checkpoint_ep{}_disc.pt'.format(epoch)
-            )
-            torch.save(generator.state_dict(), gen_checkpoint_path)
-            torch.save(discriminator.state_dict(), disc_checkpoint_path)
+            # Save checkpoint
+            gen_path = os.path.join(args.checkpoint_path, 'weights', 'checkpoint_ep{}_gen.pt'.format(epoch))
+            disc_path = os.path.join(args.checkpoint_path, 'weights', 'checkpoint_ep{}_disc.pt'.format(epoch))
+            torch.save(generator.state_dict(), gen_path)
+            torch.save(discriminator.state_dict(), disc_path)
             print('Checkpoint.')
 
 

@@ -7,28 +7,6 @@ from torch.utils.data import Dataset
 from utils import preprocess_img
 
 
-def prepare_flowers_dataset(data_path='./data'):
-    """Download and unzip flower datas."""
-    flowers_data_path = os.path.join(data_path, 'flower_data')
-    if not os.path.exists(flowers_data_path):
-        os.makedirs(flowers_data_path)
-        # download
-        print('Downloading flower dataset...')
-        os.system('wget http://www.robots.ox.ac.uk/~vgg/data/flowers/102/102flowers.tgz -P {}'
-                  .format(flowers_data_path))
-        # extract
-        print('Unzipping flower dataset...')
-        os.system('tar -C {} -xvzf {}'.format(
-            flowers_data_path, os.path.join(flowers_data_path, '102flowers.tgz')))
-    else:
-        print('Dataset already prepared in {}'.format(flowers_data_path))
-
-    img_dir = os.path.join(flowers_data_path, 'jpg')
-    img_paths = [os.path.join(img_dir, f) for f in os.listdir(img_dir) if f.endswith('.jpg')]
-    img_paths.sort()
-    return img_paths
-
-
 class Flowers64Dataset(Dataset):
     """Dataset object for 64x64 pixel flower images."""
 
@@ -63,3 +41,34 @@ class Flowers64Dataset(Dataset):
         img = preprocess_img(img)
 
         return torch.tensor(img.astype(np.float32))
+
+    @classmethod
+    def create_from_scratch(cls, data_path):
+        """Download and extract data, and create dataset object."""
+        # download images
+        flower_img_paths = cls.prepare_flowers_data(data_path)
+        # define dataset
+        dataset = cls(img_paths=flower_img_paths)
+        return dataset
+
+    @staticmethod
+    def prepare_flowers_data(data_path='./data'):
+        """Download and unzip flower datas."""
+        flowers_data_path = os.path.join(data_path, 'flower_data')
+        if not os.path.exists(flowers_data_path):
+            os.makedirs(flowers_data_path)
+            # download
+            print('Downloading flower dataset...')
+            os.system('wget http://www.robots.ox.ac.uk/~vgg/data/flowers/102/102flowers.tgz -P {}'
+                      .format(flowers_data_path))
+            # extract
+            print('Unzipping flower dataset...')
+            os.system('tar -C {} -xvzf {}'.format(
+                flowers_data_path, os.path.join(flowers_data_path, '102flowers.tgz')))
+        else:
+            print('Dataset already prepared in {}'.format(flowers_data_path))
+
+        img_dir = os.path.join(flowers_data_path, 'jpg')
+        img_paths = [os.path.join(img_dir, f) for f in os.listdir(img_dir) if f.endswith('.jpg')]
+        img_paths.sort()
+        return img_paths
