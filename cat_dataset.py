@@ -178,7 +178,8 @@ def extract_catfaces(img_paths, annotation_paths, catfaces_path='./data/cat_data
 
 
 class Catfaces64Dataset(Dataset):
-    """Dataset object for 64x64 pixel cat faces."""
+    """Dataset object for 64x64 pixel catface images."""
+
     def __init__(self, img_paths, mirror=True):
         self.img_paths = img_paths
         self.size = 64
@@ -190,12 +191,15 @@ class Catfaces64Dataset(Dataset):
     def __getitem__(self, idx):
         img_path = self.img_paths[idx]
         img = cv2.imread(img_path)
+
         # mirror img with a 50% chance
         if self.mirror:
             if random.random() > 0.5:
                 img = img[:, ::-1, :]
         # resize
         img = cv2.resize(img, (self.size, self.size))
+
         # normalize
         img = preprocess_img(img)
+
         return torch.tensor(img.astype(np.float32))
