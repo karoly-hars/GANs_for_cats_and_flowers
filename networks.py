@@ -121,6 +121,5 @@ class WGANDiscriminator(nn.Module):
         x = self.conv3(x)
         x = self.conv4(x)
         x = self.conv5(x)
-        x = x.mean(0)
-        x = x.view(1)
+        x = x.view(-1)
         return x

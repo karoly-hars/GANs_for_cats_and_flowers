@@ -138,8 +138,8 @@ def run_training(args):
                 optimizer_gen.step()
 
             elif args.gan_type == 'wgan_gp':
-                one, neg_one = torch.FloatTensor([1]), torch.FloatTensor([1])*-1
-                u = torch.FloatTensor(imgs.size()[0], 1, 1, 1).uniform_(0, 1)
+                one, neg_one = torch.tensor(1.0), torch.tensor(-1.0)
+                u = torch.Tensor(imgs.size()[0], 1, 1, 1).uniform_(0, 1)
                 grad_outputs = torch.ones(imgs.size()[0])
                 if use_gpu:
                     one, neg_one = one.cuda(), neg_one.cuda()
@@ -169,8 +169,7 @@ def run_training(args):
                     outputs=discriminator(interpolates),
                     inputs=interpolates,
                     grad_outputs=grad_outputs,
-                    retain_graph=True,
-                    create_graph=True,
+                    retain_graph=True, create_graph=True,
                     only_inputs=True
                 )
                 grad = grad[0]
