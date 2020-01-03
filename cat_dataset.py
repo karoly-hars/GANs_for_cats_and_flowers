@@ -106,23 +106,33 @@ def crop_catface(img_path, annotation_path):
 def prepare_cat_dataset(data_path='./data'):
     """Download and unzip the cat database, and extract the cat faces according to the annotations."""
     cat_data_path = os.path.join(data_path, 'cat_data')
+    dataset_zip1_path = os.path.join(cat_data_path, 'CAT_DATASET_01.zip')
+    dataset_zip2_path = os.path.join(cat_data_path, 'CAT_DATASET_02.zip')
+    dataset_part1_path = os.path.join(cat_data_path, 'CAT_DATASET_01')
+    dataset_part2_path = os.path.join(cat_data_path, 'CAT_DATASET_02')
 
     if not os.path.exists(cat_data_path):
         os.makedirs(cat_data_path)
-        # download
+
+    # download
+    if not os.path.exists(dataset_zip1_path) or not os.path.exists(dataset_zip2_path):
         print('Downloading cat dataset part 1...')
         os.system(
             'wget https://web.archive.org/web/20150520175555/'
-            'http://137.189.35.203/WebUI/CatDatabase/Data/CAT_DATASET_01.zip -P {}'.format(cat_data_path))
+            'http://137.189.35.203/WebUI/CatDatabase/Data/CAT_DATASET_01.zip -P {}'.format(cat_data_path)
+        )
         print('Downloading cat dataset part 2...')
         os.system(
             'wget https://web.archive.org/web/20150520175645/'
-            'http://137.189.35.203/WebUI/CatDatabase/Data/CAT_DATASET_02.zip -P {}'.format(cat_data_path))
+            'http://137.189.35.203/WebUI/CatDatabase/Data/CAT_DATASET_02.zip -P {}'.format(cat_data_path)
+        )
         os.system(
             'wget https://web.archive.org/web/20130527104257/'
-            'http://137.189.35.203/WebUI/CatDatabase/Data/00000003_015.jpg.cat -P {}'.format(cat_data_path))
+            'http://137.189.35.203/WebUI/CatDatabase/Data/00000003_015.jpg.cat -P {}'.format(cat_data_path)
+        )
 
-        # unzip
+    # unzip
+    if not os.path.exists(dataset_part1_path) or not os.path.exists(dataset_part2_path):
         print('Unziping dataset part 1...')
         with zipfile.ZipFile('{}/CAT_DATASET_01.zip'.format(cat_data_path), 'r') as z:
             z.extractall('{}/CAT_DATASET_01'.format(cat_data_path))
@@ -135,9 +145,7 @@ def prepare_cat_dataset(data_path='./data'):
         os.system('mv {}/00000003_015.jpg.cat {}/CAT_DATASET_01/CAT_00'.format(cat_data_path, cat_data_path))
         os.system('rm {}/CAT_DATASET_01/CAT_00/00000003_019.jpg.cat'.format(cat_data_path))
 
-    else:
-        print('Dataset already prepared in {}'.format(cat_data_path))
-
+    print('Dataset prepared.')
     img_paths = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(cat_data_path))
                  for f in fn if f.endswith('.jpg')]
     annotation_paths = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(cat_data_path))
