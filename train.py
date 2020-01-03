@@ -167,6 +167,8 @@ def training_step_wgan_gp(batch_idx, batch, device, train_config, generator, dis
         g_loss = g_loss.mean()
         g_loss.backward(neg_one)
         optimizers['gen'].step()
+    else:
+        g_loss = None
 
     return g_loss, d_loss
 
