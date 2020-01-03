@@ -7,7 +7,7 @@ A few months ago I saw a [blog post](https://ajolicoeur.wordpress.com/cats/) abo
 - python 3.6
 - opencv-python 
 - numpy
-- **pytorch 1.1.0 is a must**
+- torch **its probably a good idea to use 1.3.0 or higher**
 
 ### Experiments
 I used DCGAN and WGAN (with gradient penalty). Additionally, to the [cat dataset](https://www.kaggle.com/crawford/cat-dataset), I also experimented with generating flowers using the [102 category flower dataset](http://www.robots.ox.ac.uk/~vgg/data/flowers/102/). In both cases, I downsampled the images to 64x64, and since the datasets share some characteristics, I used the same hyper-parameters.

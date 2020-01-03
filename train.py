@@ -226,11 +226,11 @@ def run_training(args):
 def get_arguments():
     """Get command line arguments."""
     parser = argparse.ArgumentParser(description='Run GAN training.')
-    parser.add_argument('--gan_type', type=str, help='network type', required=True, choices=['dcgan', 'wgan_gp'])
-    parser.add_argument('--dataset', type=str, help='dataset for training', required=True, choices=['cats', 'flowers'])
-    parser.add_argument('--data_path', type=str, help='download path for the data', default='./data')
-    parser.add_argument('--checkpoint_path', type=str, help='save path for checkpoints and samples during training',
-                        default='./checkpoints')
+    parser.add_argument('-g', '--gan_type', type=str, help='Network type.', required=True, choices=['dcgan', 'wgan_gp'])
+    parser.add_argument('-d', '--dataset', type=str, help='Dataset to use.', required=True, choices=['cats', 'flowers'])
+    parser.add_argument('-p', '--data_path', type=str, help='Download path for the data.', default='./data')
+    parser.add_argument('-c', '--checkpoint_path', type=str, default='./checkpoints',
+                        help='Save path for checkpoints and samples during training')
     return parser.parse_args()
 
 
