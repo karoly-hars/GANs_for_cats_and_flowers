@@ -2,6 +2,7 @@ import os
 import cv2
 import math
 import random
+import zipfile
 import torch
 from torch.utils.data import Dataset
 from utils import preprocess_img
@@ -123,9 +124,11 @@ def prepare_cat_dataset(data_path='./data'):
 
         # unzip
         print('Unziping dataset part 1...')
-        os.system('unzip {}/CAT_DATASET_01.zip -d {}/CAT_DATASET_01'.format(cat_data_path, cat_data_path))
+        with zipfile.ZipFile('{}/CAT_DATASET_01.zip'.format(cat_data_path), 'r') as z:
+            z.extractall('{}/CAT_DATASET_01'.format(cat_data_path))
         print('Unziping dataset part 2...')
-        os.system('unzip {}/CAT_DATASET_02.zip -d {}/CAT_DATASET_02'.format(cat_data_path, cat_data_path))
+        with zipfile.ZipFile('{}/CAT_DATASET_02.zip'.format(cat_data_path), 'r') as z:
+            z.extractall('{}/CAT_DATASET_02'.format(cat_data_path))
 
         # bugfix according to
         # https://web.archive.org/web/20150703060412/http://137.189.35.203/WebUI/CatDatabase/catData.html
