@@ -3,6 +3,7 @@ import cv2
 import math
 import random
 import zipfile
+import numpy as np
 import torch
 from torch.utils.data import Dataset
 from utils import preprocess_img
@@ -126,10 +127,6 @@ def prepare_cat_dataset(data_path='./data'):
             'wget https://web.archive.org/web/20150520175645/'
             'http://137.189.35.203/WebUI/CatDatabase/Data/CAT_DATASET_02.zip -P {}'.format(cat_data_path)
         )
-        os.system(
-            'wget https://web.archive.org/web/20130527104257/'
-            'http://137.189.35.203/WebUI/CatDatabase/Data/00000003_015.jpg.cat -P {}'.format(cat_data_path)
-        )
 
     # unzip
     if not os.path.exists(dataset_part1_path) or not os.path.exists(dataset_part2_path):
@@ -142,12 +139,16 @@ def prepare_cat_dataset(data_path='./data'):
 
         # bugfix according to
         # https://web.archive.org/web/20150703060412/http://137.189.35.203/WebUI/CatDatabase/catData.html
+        os.system(
+            'wget https://web.archive.org/web/20130527104257/'
+            'http://137.189.35.203/WebUI/CatDatabase/Data/00000003_015.jpg.cat -P {}'.format(cat_data_path)
+        )
         os.system('mv {}/00000003_015.jpg.cat {}/CAT_DATASET_01/CAT_00'.format(cat_data_path, cat_data_path))
         os.system('rm {}/CAT_DATASET_01/CAT_00/00000003_019.jpg.cat'.format(cat_data_path))
 
     print('Dataset prepared.')
     img_paths = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(cat_data_path))
-                 for f in fn if f.endswith('.jpg')]
+                 for f in fn if f.endswith('.jpg') and 'catfaces' not in dp]
     annotation_paths = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(cat_data_path))
                         for f in fn if f.endswith('.jpg.cat')]
     img_paths.sort()
@@ -166,7 +167,7 @@ def extract_catfaces(img_paths, annotation_paths, catfaces_path='./data/cat_data
         for idx in range(len(img_paths)):
             img_path = img_paths[idx]
             annotation_path = annotation_paths[idx]
-            # print('{}: {},{}'.format(idx+1, img_path, annotation_path))
+
             img = crop_catface(img_path, annotation_path)
             cv2.imwrite('{}/{}_{}'.format(catfaces_path, img_path.split('/')[-2], img_path.split('/')[-1]), img)
     else:
@@ -197,4 +198,4 @@ class Catfaces64Dataset(Dataset):
         img = cv2.resize(img, (self.size, self.size))
         # normalize
         img = preprocess_img(img)
-        return torch.tensor(img)
+        return torch.tensor(img.astype(np.float32))
