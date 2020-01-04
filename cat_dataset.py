@@ -136,7 +136,9 @@ class Catfaces64Dataset(Dataset):
         """Download and extract data, and create dataset object."""
         # download and extract data
         img_paths, annotation_paths = cls.prepare_cat_data(data_path)
-        catface_img_paths = cls.extract_catfaces(img_paths, annotation_paths)
+        catface_img_paths = cls.extract_catfaces(
+            img_paths, annotation_paths, os.path.join(data_path, 'cat_data', 'cropped_catfaces')
+        )
         # define dataset
         dataset = cls(img_paths=catface_img_paths)
         return dataset
@@ -186,7 +188,7 @@ class Catfaces64Dataset(Dataset):
 
         print('Dataset prepared.')
         img_paths = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(cat_data_path))
-                     for f in fn if f.endswith('.jpg') and 'catfaces' not in dp]
+                     for f in fn if f.endswith('.jpg') and '/cropped_catfaces/' not in dp]
         annotation_paths = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(cat_data_path))
                             for f in fn if f.endswith('.jpg.cat')]
         img_paths.sort()
@@ -195,7 +197,7 @@ class Catfaces64Dataset(Dataset):
         return img_paths, annotation_paths
 
     @staticmethod
-    def extract_catfaces(img_paths, annotation_paths, catfaces_path='./data/cat_data/catfaces'):
+    def extract_catfaces(img_paths, annotation_paths, catfaces_path):
         """Extract the faces from each cat image."""
         if not os.path.exists(catfaces_path):
             # crop around the faces and save the new imageset
