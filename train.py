@@ -34,7 +34,7 @@ def init_training(args):
 
     # check CUDA availability and set device
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print('Use GPU: {}'.format(device is not 'cpu'))
+    print('Use GPU: {}'.format(str(device) != 'cpu'))
 
     # init networks
     generator = Generator()  # the generator is the same for both the DCGAN and the WGAN
