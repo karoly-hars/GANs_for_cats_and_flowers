@@ -144,7 +144,8 @@ def training_step_wgan_gp(batch_idx, batch, device, train_config, generator, dis
         outputs=discriminator(interpolates),
         inputs=interpolates,
         grad_outputs=grad_outputs,
-        retain_graph=True, create_graph=True,
+        retain_graph=True,
+        create_graph=True,
         only_inputs=True
     )
     grad = grad[0]
