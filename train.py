@@ -51,10 +51,14 @@ def init_training(args):
     # Optimizers
     optimizers = {
         'gen': torch.optim.Adam(
-            generator.parameters(), lr=train_config['learning_rate_g'], betas=(train_config['b1'], train_config['b2'])
+            generator.parameters(),
+            lr=train_config['learning_rate_g'],
+            betas=(train_config['b1'], train_config['b2'])
         ),
         'disc': torch.optim.Adam(
-            discriminator.parameters(), lr=train_config['learning_rate_d'], betas=(train_config['b1'], train_config['b2'])
+            discriminator.parameters(),
+            lr=train_config['learning_rate_d'],
+            betas=(train_config['b1'], train_config['b2'])
         )
     }
 
