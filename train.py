@@ -192,6 +192,7 @@ def run_training(args):
         loss_fn = torch.nn.BCELoss().to(device)
 
     # Training
+    print('Training:')
     for epoch in range(train_config['start_epoch'], train_config['max_epoch']+1):
         for batch_idx, batch in enumerate(data_loader):
 
