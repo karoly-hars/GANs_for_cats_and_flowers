@@ -18,7 +18,7 @@ In both cases, I downsampled the images to 64x64, and since the datasets share s
 #### How to re-run the experiments
 
 ```
-python3 --dataset <DATASET> --gan_type <GAN_TYPE>
+python3 train.py --dataset <DATASET> --gan_type <GAN_TYPE>
 ```
 
 Where ```<DATASET>``` is either "cats" or "flowers" and ```<GAN_TYPE>``` is one of "dcgan" or "wgan_gp".
