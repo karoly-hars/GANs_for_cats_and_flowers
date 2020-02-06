@@ -81,7 +81,7 @@ def init_training(args):
 
 
 def training_step_dcgan(batch, device, generator, discriminator, optimizers, train_config, loss_fn):
-    """Run training step of the generator and the discriminator in a DCGAN architecture."""
+    """Run the DCGAN training steps."""
     imgs = batch.to(device)
 
     # Sample noise as generator input
@@ -117,7 +117,7 @@ def training_step_dcgan(batch, device, generator, discriminator, optimizers, tra
 
 
 def training_step_wgan_gp(batch_idx, batch, device, train_config, generator, discriminator, optimizers):
-    """Run training step of the generator and the discriminator in a WGAN architecture with gradient penalty loss."""
+    """Run the WGAN training steps (with gradient penalty loss)."""
     imgs = batch.to(device)
 
     # Sample noise as generator input
