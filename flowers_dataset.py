@@ -53,7 +53,7 @@ class Flowers64Dataset(Dataset):
 
     @staticmethod
     def prepare_flowers_data(data_path='./data'):
-        """Download and unzip flower datas."""
+        """Download and unzip flower data."""
         flowers_data_path = os.path.join(data_path, 'flower_data')
         if not os.path.exists(flowers_data_path):
             os.makedirs(flowers_data_path)
