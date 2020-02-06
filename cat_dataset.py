@@ -19,7 +19,7 @@ def rot_image(img, angle, center):
 
 
 def rotate_image_and_keypoints(img, keypoints, angle):
-    """Rotate and image and a set of keypoints around the center of the image."""
+    """Rotate an image and a set of keypoints around the center of the image."""
     height, width = img.shape[:2]
     center = (width / 2, height / 2)
 
