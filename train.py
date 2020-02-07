@@ -239,7 +239,7 @@ def get_arguments():
     parser.add_argument('-d', '--dataset', type=str, help='Dataset to use.', required=True, choices=['cats', 'flowers'])
     parser.add_argument('-p', '--data_path', type=str, help='Download path for the data.', default='./data')
     parser.add_argument('-c', '--checkpoint_path', type=str, default='./checkpoints',
-                        help='Save path for checkpoints and samples during training')
+                        help='Save path for checkpoints and samples during training.')
     return parser.parse_args()
 
 
