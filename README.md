@@ -11,8 +11,7 @@ A few months ago I saw a [blog post](https://ajolicoeur.wordpress.com/cats/) abo
 
 ### Experiments
 I used DCGAN and WGAN (with gradient penalty).
-Additionally, to the [cat dataset](https://www.kaggle.com/crawford/cat-dataset),
-I also experimented with generating flowers using the [102 category flower dataset](http://www.robots.ox.ac.uk/~vgg/data/flowers/102/).
+I run my experiments on the [cat dataset](https://www.kaggle.com/crawford/cat-dataset), and I also tried to generate flowers using the [102 category flower dataset](http://www.robots.ox.ac.uk/~vgg/data/flowers/102/).
 In both cases, I downsampled the images to 64x64, and since the datasets share some characteristics, I used the same hyper-parameters.
 
 #### How to re-run the experiments
